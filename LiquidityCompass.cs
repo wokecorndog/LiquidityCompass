@@ -27,6 +27,11 @@ namespace NinjaTrader.NinjaScript.Indicators
         private double lastBidTotal = 0;
         private double lastAskTotal = 0;
 
+        private double currentBidTotal = 0;
+        private double currentAskTotal = 0;
+        private string currentLabel = "";
+        private Brush currentColor = Brushes.Gray;
+
         private readonly TimeSpan bufferDuration = TimeSpan.FromMilliseconds(200);
 
         [NinjaScriptProperty]
@@ -72,24 +77,90 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             else if (State == State.Terminated)
             {
+                RemoveTextBlocks();
+            }
+        }
+
+        protected override void OnBarUpdate() { }
+
+        protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
+        {
+            EnsureTextBlocksCreated();
+
+            if (domTextBlock != null)
+            {
+                domTextBlock.Text = $"DOM ({DomInstrument}): {currentLabel} ({(currentBidTotal + currentAskTotal) / (2.0 * DepthLevels):N0})";
+                domTextBlock.Foreground = currentColor;
+            }
+
+            if (debugTextBlock != null && ShowDebug)
+            {
+                debugTextBlock.Text = $"[DEBUG] Bid: {currentBidTotal:N0} | Ask: {currentAskTotal:N0} | Avg: {(currentBidTotal + currentAskTotal) / (2.0 * DepthLevels):N0}";
+            }
+        }
+
+        private void EnsureTextBlocksCreated()
+        {
+            if ((domTextBlock == null || (ShowDebug && debugTextBlock == null)) && ChartControl != null)
+            {
+                chartGrid = ChartControl.Parent as Grid;
                 if (chartGrid != null)
                 {
                     ChartControl.Dispatcher.InvokeAsync(() =>
                     {
-                        if (domTextBlock != null && chartGrid.Children.Contains(domTextBlock))
-                            chartGrid.Children.Remove(domTextBlock);
+                        if (domTextBlock == null)
+                        {
+                            domTextBlock = new TextBlock
+                            {
+                                Text = "",
+                                Foreground = Brushes.Gray,
+                                FontSize = 18,
+                                Background = Brushes.Black,
+                                Opacity = 0.7,
+                                Margin = new Thickness(20, 20, 0, 0),
+                                HorizontalAlignment = HorizontalAlignment.Left,
+                                VerticalAlignment = VerticalAlignment.Top
+                            };
+                            chartGrid.Children.Add(domTextBlock);
+                        }
 
-                        if (debugTextBlock != null && chartGrid.Children.Contains(debugTextBlock))
-                            chartGrid.Children.Remove(debugTextBlock);
-
-                        domTextBlock = null;
-                        debugTextBlock = null;
+                        if (ShowDebug && debugTextBlock == null)
+                        {
+                            debugTextBlock = new TextBlock
+                            {
+                                Text = "",
+                                Foreground = Brushes.LightGray,
+                                FontSize = 14,
+                                Background = Brushes.Black,
+                                Opacity = 0.6,
+                                Margin = new Thickness(20, 42, 0, 0),
+                                HorizontalAlignment = HorizontalAlignment.Left,
+                                VerticalAlignment = VerticalAlignment.Top
+                            };
+                            chartGrid.Children.Add(debugTextBlock);
+                        }
                     });
                 }
             }
         }
 
-        protected override void OnBarUpdate() { }
+        private void RemoveTextBlocks()
+        {
+            if (chartGrid != null)
+            {
+                ChartControl.Dispatcher.InvokeAsync(() =>
+                {
+                    if (domTextBlock != null && chartGrid.Children.Contains(domTextBlock))
+                        chartGrid.Children.Remove(domTextBlock);
+
+                    if (debugTextBlock != null && chartGrid.Children.Contains(debugTextBlock))
+                        chartGrid.Children.Remove(debugTextBlock);
+
+                    domTextBlock = null;
+                    debugTextBlock = null;
+                });
+            }
+        }
 
         protected override void OnMarketDepth(MarketDepthEventArgs e)
         {
@@ -137,89 +208,22 @@ namespace NinjaTrader.NinjaScript.Indicators
                 askTotal += askVolumes[i];
             }
 
-            if (bidTotal == 0)
-                bidTotal = lastBidTotal;
-            else
-                lastBidTotal = bidTotal;
+            currentBidTotal = bidTotal == 0 ? lastBidTotal : bidTotal;
+            currentAskTotal = askTotal == 0 ? lastAskTotal : askTotal;
+            lastBidTotal = currentBidTotal;
+            lastAskTotal = currentAskTotal;
 
-            if (askTotal == 0)
-                askTotal = lastAskTotal;
-            else
-                lastAskTotal = askTotal;
-
-            double avg = (bidTotal + askTotal) / (2.0 * DepthLevels);
-            string label = avg >= ThickThreshold ? "THICK" :
-                           avg >= ThinThreshold ? "MEDIUM" : "THIN";
-
-            Brush color = avg >= ThickThreshold ? Brushes.LimeGreen :
-                          avg >= ThinThreshold ? Brushes.Gold : Brushes.Red;
+            double avg = (currentBidTotal + currentAskTotal) / (2.0 * DepthLevels);
+            currentLabel = avg >= ThickThreshold ? "THICK" : avg >= ThinThreshold ? "MEDIUM" : "THIN";
+            currentColor = avg >= ThickThreshold ? Brushes.LimeGreen : avg >= ThinThreshold ? Brushes.Gold : Brushes.Red;
 
             if (EnableLogging)
-                Print($"[LiquidityCompass] BidSum: {bidTotal}, AskSum: {askTotal}, Avg: {avg}");
+                Print($"[LiquidityCompass] BidSum: {currentBidTotal}, AskSum: {currentAskTotal}, Avg: {avg}");
 
-            if ((domTextBlock == null || (ShowDebug && debugTextBlock == null)) && ChartControl != null)
-            {
-                chartGrid = ChartControl.Parent as Grid;
-                if (chartGrid != null)
-                {
-                    ChartControl.Dispatcher.InvokeAsync(() =>
-                    {
-                        if (domTextBlock == null)
-                        {
-                            domTextBlock = new TextBlock
-                            {
-                                Text = "",
-                                Foreground = Brushes.Gray,
-                                FontSize = 18,
-                                Background = Brushes.Black,
-                                Opacity = 0.7,
-                                Margin = new Thickness(20, 20, 0, 0),
-                                HorizontalAlignment = HorizontalAlignment.Left,
-                                VerticalAlignment = VerticalAlignment.Top
-                            };
-                            chartGrid.Children.Add(domTextBlock);
-                        }
-
-                        if (ShowDebug && debugTextBlock == null)
-                        {
-                            debugTextBlock = new TextBlock
-                            {
-                                Text = "",
-                                Foreground = Brushes.LightGray,
-                                FontSize = 14,
-                                Background = Brushes.Black,
-                                Opacity = 0.6,
-                                Margin = new Thickness(20, 42, 0, 0),
-                                HorizontalAlignment = HorizontalAlignment.Left,
-                                VerticalAlignment = VerticalAlignment.Top
-                            };
-                            chartGrid.Children.Add(debugTextBlock);
-                        }
-                    });
-                }
-            }
-
-            if (ChartControl != null)
-            {
-                ChartControl.Dispatcher.InvokeAsync(() =>
-                {
-                    if (domTextBlock != null)
-                    {
-                        domTextBlock.Text = $"DOM ({DomInstrument}): {label} ({avg:N0})";
-                        domTextBlock.Foreground = color;
-                    }
-
-                    if (debugTextBlock != null)
-                    {
-                        debugTextBlock.Text = ShowDebug
-                            ? $"[DEBUG] Bid: {bidTotal:N0} | Ask: {askTotal:N0} | Avg: {avg:N0}"
-                            : "";
-                    }
-                });
-            }
+            ForceRefresh();
         }
     }
-} 
+}
 
 
 #region NinjaScript generated code. Neither change nor remove.
