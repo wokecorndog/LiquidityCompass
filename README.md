@@ -29,7 +29,7 @@ LiquidityCompass monitors the **top N levels** on both the bid and ask sides of 
   - 🟨 **MEDIUM** (Avg ≥ 40 and < 80)
   - 🟥 **THIN** (Avg < 40)
 
-It displays this label on your chart, with optional debug output showing the raw bid/ask totals and average.
+It displays this label directly on your chart, with optional debug output showing the raw bid/ask totals and average.
 
 ---
 
@@ -43,11 +43,13 @@ It displays this label on your chart, with optional debug output showing the raw
 
 ## 🧪 Features
 
+- ✅ **New:** Renders UI using `OnRender()` for better separation of logic and display
+- ✅ **New:** Timeout buffer to smooth out flickering DOM levels (e.g., brief 0s on bid/ask)
+- ✅ **New:** Optional logging of both raw DOM updates and summarized outputs
 - ✅ Configurable DOM instrument (default: `ES 06-25`)
 - ✅ Adjustable depth levels (default: 10)
 - ✅ User-defined thresholds for THIN / MEDIUM / THICK
 - ✅ Optional debug mode with real-time stats
-- ✅ Optional logging of raw DOM updates and calculated summaries
 
 ---
 
@@ -56,6 +58,8 @@ It displays this label on your chart, with optional debug output showing the raw
 - NinjaTrader 8 (`v8.1.3.1` recommended)
 - Level II market data subscription (required for DOM access)
 - Indicator **must** be running on a chart to receive market depth events
+
+✅ Set **Calculate** to `On each tick` for the most accurate DOM responsiveness.
 
 ---
 
@@ -68,11 +72,15 @@ It displays this label on your chart, with optional debug output showing the raw
 5. Press `F5` to compile
 6. Apply the indicator to your chart
 
-✅ Set **Calculate** to `On each tick` for the most accurate DOM responsiveness.
+---
+
+## 🤝 Thanks & Credits
+
+- 🙌 Special thanks to [@alighten-dev](https://github.com/alighten-dev) for UI cleanup and separating rendering into `OnRender()` — helped make the code easier to manage and maintain.
 
 ---
 
-## 🤝 Contributing
+## 🧠 Contributing
 
 Want to help improve it?
 
