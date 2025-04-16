@@ -65,12 +65,27 @@ It displays this label directly on your chart, with optional debug output showin
 
 ## 📥 Installation
 
+### Option 1: Source Code Method
+
 1. Clone or download the repo
 2. Open **NinjaTrader 8**
 3. Go to `Tools > NinjaScript Editor`
 4. Right-click `Indicators > Add > Existing Item`, and select `LiquidityCompass.cs`
 5. Press `F5` to compile
 6. Apply the indicator to your chart
+
+✅ Set **Calculate** to `On each tick` for the most accurate DOM responsiveness.
+
+---
+
+### Option 2: ZIP Import Method
+
+1. Open **NinjaTrader 8**
+2. Go to `Tools > Import > NinjaScript Add-On...`
+3. Select the `LiquidityCompass.zip` file
+4. Once imported, go to a chart and add the **LiquidityCompass** indicator as usual
+
+> ⚠️ Make sure you **do not unzip** the file — NinjaTrader requires the original `.zip` format for importing.
 
 ---
 
